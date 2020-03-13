@@ -113,24 +113,24 @@ int make_nflow_hdr(u8** msg) {
     return ret_len;
 }
 
-int make_pdu(u8** msg) {
+int make_pdu(u8** msg, struct node_t* node) {
     
     int ret_len = (int) sizeof(struct pdu_t);
     struct pdu_t* pdu;
     pdu = (struct pdu_t*) calloc(1, ret_len);
-    pdu->src_addr = htonl(SRC_IP);
-    pdu->dst_addr = htonl(DST_IP);
-    pdu->next_hop = htonl(DST_IP-100);
+    pdu->src_addr = htonl(node->sip);
+    pdu->dst_addr = node->dip;
+    pdu->next_hop = htonl(DST_IP);
     pdu->input_intf = htons(0);
     pdu->output_intf = htons(0);
     pdu->pkt_count = htonl(5487);
     pdu->octet_count = htonl(9487);
     pdu->start_time = htonl(0x01b6);
     pdu->end_time = htonl(0x023b);
-    pdu->src_port = htons(SRC_PORT);
-    pdu->dst_port = htons(DST_PORT);
+    pdu->src_port = htons(node->sport);
+    pdu->dst_port = htons(node->dport);
     pdu->tcp_flag = 0;
-    pdu->protocol = 1;    // icmp
+    pdu->protocol = node->type;    // icmp
     pdu->ip_tos = 0;
     pdu->src_as = htons(0x44cc);
     pdu->dst_as = htons(0x3725);
@@ -151,7 +151,7 @@ int make_nflow_packet(u8 **msg) {
     int total_pdu_len = 0;
 
     while (curr_node) {
-        total_pdu_len += make_pdu(&pdu);
+        total_pdu_len += make_pdu(&pdu, curr_node);
         curr_node->pdu_ptr = pdu;
         curr_node = curr_node->next;
     }
