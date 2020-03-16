@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-
+#include <time.h>                   /* srand(time(0)) */
 
 #include <sys/socket.h>             /* socket(), bind(), listen(), ... */
 #include <netinet/in.h>             /* AF_INET, AF_INET6 addr family and their corresponding protocol family PF_INET, PFINET6 */
@@ -22,7 +22,8 @@
 
 static struct node_t* head_node;
 
-void handle_argv(int argc, char **argv) {
+void handle_argv(int argc, char **argv) 
+{
 
     /*
      * -u 20.20.20.1 8787
@@ -91,10 +92,12 @@ void handle_argv(int argc, char **argv) {
     return;
 
 err:
+    printf("use '-i 20.20.20.1' or '-u/-t 20.20.20.1 8000'\n");
     exit(1);
 }
 
-int make_nflow_hdr(u8** msg) {
+int make_nflow_hdr(u8** msg) 
+{
     struct nflow_hdr_t* nflow_hdr;
     int ret_len = (int) sizeof(struct nflow_hdr_t);
     nflow_hdr = (struct nflow_hdr_t*) calloc(1, ret_len);
@@ -113,8 +116,8 @@ int make_nflow_hdr(u8** msg) {
     return ret_len;
 }
 
-int make_pdu(u8** msg, struct node_t* node) {
-    
+int make_pdu(u8** msg, struct node_t* node) 
+{
     int ret_len = (int) sizeof(struct pdu_t);
     struct pdu_t* pdu;
     pdu = (struct pdu_t*) calloc(1, ret_len);
@@ -123,8 +126,8 @@ int make_pdu(u8** msg, struct node_t* node) {
     pdu->next_hop = htonl(DST_IP);
     pdu->input_intf = htons(0);
     pdu->output_intf = htons(0);
-    pdu->pkt_count = htonl(5487);
-    pdu->octet_count = htonl(9487);
+    pdu->pkt_count = htonl(1001);
+    pdu->octet_count = htonl(2002);
     pdu->start_time = htonl(0x01b6);
     pdu->end_time = htonl(0x023b);
     pdu->src_port = htons(node->sport);
@@ -142,8 +145,8 @@ int make_pdu(u8** msg, struct node_t* node) {
 }
 
 // main caller
-int make_nflow_packet(u8 **msg) {
-
+int make_nflow_packet(u8 **msg) 
+{
     u8* pdu;
     struct node_t* curr_node;
     curr_node = head_node;
@@ -180,10 +183,11 @@ int make_nflow_packet(u8 **msg) {
     return curr_len;
 }
 
-int main (int argc, char *argv[]) {
-    
+int main (int argc, char *argv[]) 
+{
     handle_argv(argc, argv);
 
+    srand(time(0));
     u8 *msg;
     int len = make_nflow_packet(&msg);
 
