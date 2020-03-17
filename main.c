@@ -2,12 +2,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <time.h>                   /* srand(time(0)) */
+#include <time.h>              /* srand(time(0)) */
 
-#include <sys/socket.h>             /* socket(), bind(), listen(), ... */
-#include <netinet/in.h>             /* AF_INET, AF_INET6 addr family and their corresponding protocol family PF_INET, PFINET6 */
-#include <arpa/inet.h>              /* hton(), inet_ntop() */
-#include <unistd.h>                 /* read(), write(), close() */
+#include <sys/socket.h>        /* socket(), bind(), listen(), ... */
+#include <netinet/in.h>        /* AF_INET, AF_INET6 addr family and their corresponding protocol family PF_INET, PFINET6 */
+#include <arpa/inet.h>         /* hton(), inet_ntop() */
+#include <unistd.h>            /* read(), write(), close() */
 
 
 #include "util.h"
@@ -20,9 +20,7 @@
 #define SRC_PORT 9487
 #define DST_PORT 8000
 
-static struct node_t* head_node;
-
-void handle_argv(int argc, char **argv) 
+static inline void handle_argv(int argc, char **argv) 
 {
 
     /*
@@ -32,8 +30,7 @@ void handle_argv(int argc, char **argv)
 
     head_node = NODE_CALLOC();
     if (NULL == head_node) {
-        printf("Can not malloc for head_node\n");
-        exit(1);
+        err_exit(MALLOC_FAIL);
     }
 
     if (argc == 1) {
@@ -47,37 +44,38 @@ void handle_argv(int argc, char **argv)
     struct node_t* prev = NULL;
     int i = 1;
     int ret = 0;
+    fail_e fail_code = DEFAULT_FAIL;
     while (i < argc) {
 
         if (0 == strcmp("-i", argv[i]) && i+1 < argc) {
             curr->type = 0x1;
             curr->sip = SRC_IP;
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
-            //curr->dip = DST_IP;
             i += 2;
+
         } else if (0 == strcmp("-u", argv[i]) && i+2 < argc) {
             curr->type = 0x11;
             curr->sip = SRC_IP;
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
-            //curr->dip = DST_IP;
             curr->sport = SRC_PORT;
             curr->dport = strtol(argv[i+2], NULL, 10);
             i += 3;
+
         } else if (0 == strcmp("-t", argv[i]) && i+2 < argc) {
             curr->type = 0x6;
             curr->sip = SRC_IP;
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
-            //curr->dip = DST_IP;
             curr->sport = SRC_PORT;
             curr->dport = strtol(argv[i+2], NULL, 10);
             i += 3;
+
         } else {
-            printf("Parse arg fail\n");
+            fail_code = PARSE_ARG_FAIL;
             goto err;
         }
 
         if (ret == 0) {
-            printf("Parse ip addr fail\n");
+            fail_code = PARSE_ARG_FAIL;
             goto err;
         }
 
@@ -87,20 +85,24 @@ void handle_argv(int argc, char **argv)
         } 
         prev = curr;
         curr = NODE_CALLOC();
+        if (NULL == curr) {
+            fail_code = MALLOC_FAIL;
+            goto err;
+        }
     } 
     show(head_node);
     return;
 
 err:
-    printf("use '-i 20.20.20.1' or '-u/-t 20.20.20.1 8000'\n");
-    exit(1);
+    err_exit(fail_code);
 }
 
-int make_nflow_hdr(u8** msg) 
+static inline int make_nflow_hdr(u8** msg) 
 {
     struct nflow_hdr_t* nflow_hdr;
     int ret_len = (int) sizeof(struct nflow_hdr_t);
     nflow_hdr = (struct nflow_hdr_t*) calloc(1, ret_len);
+    if (NULL == nflow_hdr) err_exit(MALLOC_FAIL);
     nflow_hdr->version = htons(5);
     nflow_hdr->count = htons(get_node_num(head_node));
     nflow_hdr->sys_uptime = htonl(0x03e8);
@@ -116,11 +118,12 @@ int make_nflow_hdr(u8** msg)
     return ret_len;
 }
 
-int make_pdu(u8** msg, struct node_t* node) 
+static inline int make_pdu(u8** msg, struct node_t* node) 
 {
     int ret_len = (int) sizeof(struct pdu_t);
     struct pdu_t* pdu;
     pdu = (struct pdu_t*) calloc(1, ret_len);
+    if (NULL == pdu) err_exit(MALLOC_FAIL);
     pdu->src_addr = htonl(node->sip);
     pdu->dst_addr = node->dip;
     pdu->next_hop = htonl(DST_IP);
@@ -133,7 +136,7 @@ int make_pdu(u8** msg, struct node_t* node)
     pdu->src_port = htons(node->sport);
     pdu->dst_port = htons(node->dport);
     pdu->tcp_flag = 0;
-    pdu->protocol = node->type;    // icmp
+    pdu->protocol = node->type;
     pdu->ip_tos = 0;
     pdu->src_as = htons(0x44cc);
     pdu->dst_as = htons(0x3725);
@@ -145,7 +148,7 @@ int make_pdu(u8** msg, struct node_t* node)
 }
 
 // main caller
-int make_nflow_packet(u8 **msg) 
+static inline int make_nflow_pkt(u8 **msg) 
 {
     u8* pdu;
     struct node_t* curr_node;
@@ -159,17 +162,20 @@ int make_nflow_packet(u8 **msg)
         curr_node = curr_node->next;
     }
     
+    // make nflow hdr
     int nflow_hdr_len = 0;
     u8* nflow_hdr;
     nflow_hdr_len = make_nflow_hdr(&nflow_hdr);
-
+    
+    // make nflow pkt
     int nflow_pkt_len = nflow_hdr_len + total_pdu_len;
     u8* ret = (u8*) calloc(1, nflow_pkt_len);
-
+    if (NULL == ret) err_exit(MALLOC_FAIL);
     int curr_len = 0;
     memcpy(ret, nflow_hdr, nflow_hdr_len);
     curr_len += nflow_hdr_len;
 
+    // append pdu one by one
     curr_node = head_node;
     while (curr_node) {
         memcpy(ret+curr_len, curr_node->pdu_ptr, sizeof(struct pdu_t));
@@ -178,7 +184,6 @@ int make_nflow_packet(u8 **msg)
     }
 
     assert(curr_len == nflow_pkt_len);
-
     *msg = ret;
     return curr_len;
 }
@@ -189,7 +194,7 @@ int main (int argc, char *argv[])
 
     srand(time(0));
     u8 *msg;
-    int len = make_nflow_packet(&msg);
+    int len = make_nflow_pkt(&msg);
 
     int sockfd, n;
     struct sockaddr_in serv_addr;
@@ -205,8 +210,7 @@ int main (int argc, char *argv[])
 
     // connect to the server
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        printf("connect fail\n");
-        exit(1);
+        err_exit(CONNECT_FAIL);
     }
 
     sendto(sockfd, (void*) msg, len, 0, (struct sockaddr*) NULL, sizeof(serv_addr));

@@ -18,6 +18,10 @@ struct node_t {
 
 #define NODE_CALLOC() (struct node_t*) calloc(1, sizeof(struct node_t))
 
+
+//TODO: add struct list_t and relative APIs
+
+
 static inline void show(struct node_t* curr) {
     while (curr) {
         printf("-------------------\n");

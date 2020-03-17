@@ -41,4 +41,12 @@ struct pdu_t {
 }__attribute__((packed));
 
 
+static struct node_t* head_node;
+
+static inline void handle_argv(int, char **);
+static inline int make_nflow_hdr(u8 **);
+static inline int make_pdu(u8 **, struct node_t*);
+static inline int make_nflow_pkt(u8 **);
+
+
 #endif
