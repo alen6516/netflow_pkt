@@ -2,9 +2,12 @@
 #define NODE_H
 
 #include "util.h"
+#include "logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
+
+extern struct logger_t logger;
 
 struct node_t {
     u8 type; // 1 for icmpv4, 17 for udp
@@ -24,25 +27,25 @@ struct node_t {
 
 static inline void show(struct node_t* curr) {
     while (curr) {
-        printf("-------------------\n");
+        CHECK("-------------------\n");
         switch (curr->type) {
             case 0x1:
-                printf("type: ICMP\n");
+                CHECK("type: ICMP\n");
                 break;
             case 0x6:
-                printf("type: TCP\n");
+                CHECK("type: TCP\n");
                 break;
             case 0x11:
-                printf("type: UDP\n");
+                CHECK("type: UDP\n");
                 break;
             default:
-                printf("Unknown type\n");
+                CHECK("Unknown type\n");
                 return;
         }
-        printf("sip: %x\n", curr->sip);
-        printf("dip: %x\n", htonl(curr->dip));
-        printf("sport: %d\n", curr->sport);
-        printf("dport: %d\n", curr->dport);
+        CHECK("sip: %x\n", curr->sip);
+        CHECK("dip: %x\n", htonl(curr->dip));
+        CHECK("sport: %d\n", curr->sport);
+        CHECK("dport: %d\n", curr->dport);
         curr = curr->next;
     }
 }

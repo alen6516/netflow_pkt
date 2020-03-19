@@ -14,11 +14,14 @@
 #include "list.h"
 #include "config.h"
 #include "main.h"
+#include "logger.h"
 
 #define SRC_IP 0x141414a1
 #define DST_IP 0x141465a2
 #define SRC_PORT 9487
 #define DST_PORT 8000
+
+extern struct logger_t logger;
 
 static inline void handle_argv(int argc, char **argv) 
 {
@@ -191,6 +194,7 @@ static inline int make_nflow_pkt(u8 **msg)
 int main (int argc, char *argv[]) 
 {
     handle_argv(argc, argv);
+    init_logger("./log");
 
     srand(time(0));
     u8 *msg;
