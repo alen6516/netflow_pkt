@@ -193,8 +193,8 @@ static inline int make_nflow_pkt(u8 **msg)
 
 int main (int argc, char *argv[]) 
 {
+    init_logger(LOGGER_FILE);
     handle_argv(argc, argv);
-    init_logger("./log");
 
     srand(time(0));
     u8 *msg;

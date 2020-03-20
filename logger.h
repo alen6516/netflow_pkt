@@ -8,8 +8,8 @@
 
 #include "util.h"
 
-
-#define PRE_SIZE 8      // "[WARN] "
+#define LOGGER_FILE "./log.txt"
+#define PRE_SIZE 9      // "[WARN] "
 #define LOG_SIZE 100    // msg body 
 
 
