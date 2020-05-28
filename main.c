@@ -16,11 +16,6 @@
 #include "main.h"
 #include "logger.h"
 
-#define SRC_IP 0x141414a1
-#define DST_IP 0x141465a2
-#define SRC_PORT 9487
-#define DST_PORT 8000
-
 extern struct logger_t logger;
 
 static inline void handle_argv(int argc, char **argv) 
@@ -32,61 +27,93 @@ static inline void handle_argv(int argc, char **argv)
      * -110 20.20.20.1
      */
 
+    /*
+     * -u 20.20.101.1 -p 8787 -a 20.20.20.1 -c 10 -i 1
+     *      -c and -i means the end arg
+     *      -a effects the dst ip in the front of it
+     */
+
     head_node = NODE_CALLOC();
     if (NULL == head_node) {
         err_exit(MALLOC_FAIL);
     }
 
     if (argc == 1) {
+        // no any arg
         head_node->type = 0x1;
         head_node->sip = SRC_IP;
         head_node->dip = DST_IP;
         return;
     }
 
-    struct node_t* curr = head_node;
     struct node_t* prev = NULL;
+    struct node_t* curr = head_node;
     int i = 1;
-    int ret = 0;
+    int ret = 1;    // success
     fail_e fail_code = DEFAULT_FAIL;
     while (i < argc) {
 
-        if (0 == strcmp("-i", argv[i]) && i+1 < argc) {
-            curr->type = 0x1;
-            curr->sip = SRC_IP;
-            ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
+        if (0 == strcmp("-a", argv[i]) && i+1 < argc) {
+            ret = inet_pton(AF_INET, argv[i+1], &curr->sip);
             i += 2;
 
-        } else if (0 == strcmp("-u", argv[i]) && i+2 < argc) {
-            curr->type = 0x11;
-            curr->sip = SRC_IP;
-            ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
-            curr->sport = SRC_PORT;
-            curr->dport = strtol(argv[i+2], NULL, 10);
-            i += 3;
+        } else if (0 == strcmp("-p", argv[i]) && i+1 < argc) {
+            
+            curr->dport = strtol(argv[i+1], NULL, 10);
+            i += 2;
 
-        } else if (0 == strcmp("-t", argv[i]) && i+2 < argc) {
-            curr->type = 0x6;
-            curr->sip = SRC_IP;
+        } else if (0 == strcmp("-i", argv[i]) && i+1 < argc) {
+            if (curr->dip) {
+                goto add_node;
+            }
+            curr->type = 0x1;
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
+            if (!curr->sip) {
+                curr->sip = htonl(SRC_IP);
+            }
+            i += 2;
+
+        } else if (0 == strcmp("-u", argv[i]) && i+1 < argc) {
+            if (curr->dip) {
+                goto add_node;
+            }
+            curr->type = 0x11;
+            ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
+            if (!curr->sip) {
+                curr->sip = htonl(SRC_IP);
+            }
             curr->sport = SRC_PORT;
-            curr->dport = strtol(argv[i+2], NULL, 10);
-            i += 3;
+            curr->dport = DST_PORT;     //strtol(argv[i+2], NULL, 10);
+            i += 2;
+
+        } else if (0 == strcmp("-t", argv[i]) && i+1 < argc) {
+            if (curr->dip) {
+               goto add_node;
+            }
+            curr->type = 0x6;
+            ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
+            if (!curr->sip) {
+                curr->sip = htonl(SRC_IP);
+            }
+            curr->sport = SRC_PORT;
+            curr->dport = DST_PORT;     //strtol(argv[i+2], NULL, 10);
+            i += 2;
 
         } else {
-            fail_code = PARSE_ARG_FAIL;
-            goto err;
+            ret = 0;
         }
 
         if (ret == 0) {
             fail_code = PARSE_ARG_FAIL;
             goto err;
+        } else {
+            continue;
         }
 
-        // before goto next
-        if (curr != head_node) {
+add_node:
+        if (prev) {
             prev->next = curr;
-        } 
+        }
         prev = curr;
         curr = NODE_CALLOC();
         if (NULL == curr) {
@@ -94,6 +121,7 @@ static inline void handle_argv(int argc, char **argv)
             goto err;
         }
     } 
+
     show(head_node);
     return;
 
@@ -196,6 +224,7 @@ int main (int argc, char *argv[])
 {
     init_logger(LOGGER_FILE);
     handle_argv(argc, argv);
+    exit(0);
 
     srand(time(0));
     u8 *msg;
