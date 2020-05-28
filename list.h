@@ -42,7 +42,7 @@ static inline void show(struct node_t* curr) {
                 CHECK("Unknown type\n");
                 return;
         }
-        CHECK("sip: %x\n", curr->sip);
+        CHECK("sip: %x\n", htonl(curr->sip));
         CHECK("dip: %x\n", htonl(curr->dip));
         CHECK("sport: %d\n", curr->sport);
         CHECK("dport: %d\n", curr->dport);
