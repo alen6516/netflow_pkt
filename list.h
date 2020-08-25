@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-extern struct logger_t logger;
-
 struct node_t {
     u8 type; // 1 for icmpv4, 17 for udp
     u32 sip;
@@ -25,7 +23,7 @@ struct node_t {
 //TODO: add struct list_t and relative APIs
 
 
-static inline void show(struct node_t* curr) {
+static inline void list_show(struct node_t* curr) {
     while (curr) {
         CHECK("-------------------\n");
         switch (curr->type) {

@@ -3,21 +3,23 @@
 
 #include "logger.h"
 
-struct logger_t logger;
+extern struct logger_t logger;
 
-int init_logger(const char *log_file) {
-    logger.mode = CHECK_MODE;
-    logger.log_file = fopen(log_file, "w+");
+int init_logger(struct logger_t* logger, const char *log_file) {
+    logger->mode = CHECK_MODE;
+    logger->log_file = fopen(log_file, "w+");
     return 0;
 }
 
 
-void _log(mode_e this_mode, const char *format, va_list arg) {
+void _log(struct logger_t *logger, mode_e this_mode, const char *format, va_list arg) {
 
     char buf[PRE_SIZE+LOG_SIZE];
     int plen = 0;
 
     switch (this_mode) {
+        case QUIET_MODE:
+            return;
         case INFO_MODE:
             snprintf(buf, PRE_SIZE, "[%5s] ", "INFO");
             break;
@@ -37,48 +39,48 @@ void _log(mode_e this_mode, const char *format, va_list arg) {
 
     plen = vsnprintf(buf+PRE_SIZE-1, LOG_SIZE-1, format, arg);
 
-    if (NULL != logger.log_file) {
-        fwrite(buf, PRE_SIZE-1+plen, 1, logger.log_file);
+    if (NULL != logger->log_file) {
+        fwrite(buf, PRE_SIZE-1+plen, 1, logger->log_file);
     }
 
-    if (this_mode >= logger.mode) {
+    if (this_mode >= logger->mode) {
         printf("%s", buf);
     }
 }
 
 
-void INFO(const char *format, ...) {
+void INFO(struct logger_t *logger, const char *format, ...) {
     va_list arg;
     va_start(arg, format);
     va_end(arg);
-    _log(INFO_MODE, format, arg);
+    _log(logger, INFO_MODE, format, arg);
 }
 
-void DEBUG(const char *format, ...) {
+void DEBUG(struct logger_t *logger, const char *format, ...) {
     va_list arg;
     va_start(arg, format);
     va_end(arg);
-    _log(DEBUG_MODE, format, arg);
+    _log(logger, DEBUG_MODE, format, arg);
 }
 
-void CHECK(const char *format, ...) {
+void CHECK(struct logger_t *logger, const char *format, ...) {
     va_list arg;
     va_start(arg, format);
     va_end(arg);
-    _log(CHECK_MODE, format, arg);
+    _log(logger, CHECK_MODE, format, arg);
 }
 
 
-void WARN(const char *format, ...) {
+void WARN(struct logger_t *logger, const char *format, ...) {
     va_list arg;
     va_start(arg, format);
     va_end(arg);
-    _log(WARN_MODE, format, arg);
+    _log(logger, WARN_MODE, format, arg);
 }
 
-void ERROR(const char *format, ...) {
+void ERROR(struct logger_t *logger, const char *format, ...) {
     va_list arg;
     va_start(arg, format);
     va_end(arg);
-    _log(ERROR_MODE, format, arg);
+    _log(logger, ERROR_MODE, format, arg);
 }

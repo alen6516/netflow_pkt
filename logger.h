@@ -10,11 +10,11 @@
 
 #define LOGGER_FILE "./log.txt"
 #define PRE_SIZE 9      // "[WARN] "
-#define LOG_SIZE 100    // msg body 
-
+#define LOG_SIZE 100     // msg body 
 
 typedef enum {
-    INFO_MODE = 0,
+    QUIET_MODE = 0,
+    INFO_MODE,
     DEBUG_MODE,
     CHECK_MODE,
     WARN_MODE,
@@ -30,16 +30,16 @@ struct logger_t {
 #define LOGGER_CALLOC() (struct logger_t*)calloc(1, sizeof(struct logger_t))
 
 
-int init_logger(const char *);
+int init_logger(struct logger_t *, const char *);
 
-void _log(mode_e this_mode, const char *format, va_list arg);
+void _log(struct logger_t *, mode_e, const char *, va_list);
 
 
-void INFO(const char *format, ...);
-void DEBUG(const char *format, ...);
-void CHECK(const char *format, ...);
-void WARN(const char *format, ...);
-void ERROR(const char *format, ...);
+void INFO(struct logger_t *, const char *, ...);
+void DEBUG(struct logger_t *, const char *, ...);
+void CHECK(struct logger_t *, const char *, ...);
+void WARN(struct logger_t *, const char *, ...);
+void ERROR(struct logger_t *, const char *, ...);
 
 /*
 int main () {

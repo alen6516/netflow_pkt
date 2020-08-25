@@ -16,7 +16,13 @@
 #include "main.h"
 #include "logger.h"
 
-extern struct logger_t logger;
+struct g_var_t g_var = {
+    .interval = 1,
+    .send_count = 1,
+};
+
+struct logger_t logger;
+struct node_t* head_node;
 
 static inline void handle_argv(int argc, char **argv) 
 {
@@ -53,50 +59,51 @@ static inline void handle_argv(int argc, char **argv)
     fail_e fail_code = DEFAULT_FAIL;
     while (i < argc) {
 
-        if (0 == strcmp("-a", argv[i]) && i+1 < argc) {
+        if (0 == strcmp("-i", argv[i]) && i+1 < argc) {
+            curr->type = 0x1;
+            ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
+            /*
+            if (!curr->sip) {
+                curr->sip = htonl(SRC_IP);
+            }
+            */
+            i += 2;
+
+        } else if (0 == strcmp("-u", argv[i]) && i+2 < argc) {
+            curr->type = 0x11;
+            ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
+            /*
+            if (!curr->sip) {
+                curr->sip = htonl(SRC_IP);
+            }
+            */
+            curr->sport = SRC_PORT;
+            //curr->dport = DST_PORT;
+            strtol(argv[i+2], NULL, 10);
+            i += 3;
+
+        } else if (0 == strcmp("-t", argv[i]) && i+2 < argc) {
+            curr->type = 0x6;
+            ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
+            /*
+            if (!curr->sip) {
+                curr->sip = htonl(SRC_IP);
+            }
+            */
+            curr->sport = SRC_PORT;
+            //curr->dport = DST_PORT;
+            strtol(argv[i+2], NULL, 10);
+            i += 3;
+
+        } else if (0 == strcmp("-a", argv[i]) && i+1 < argc) {
             ret = inet_pton(AF_INET, argv[i+1], &curr->sip);
             i += 2;
 
-        } else if (0 == strcmp("-p", argv[i]) && i+1 < argc) {
-            
-            curr->dport = strtol(argv[i+1], NULL, 10);
-            i += 2;
-
-        } else if (0 == strcmp("-i", argv[i]) && i+1 < argc) {
-            if (curr->dip) {
-                goto add_node;
+        } else if (0 == strcmp("-c", argv[i]) && i+1 < argc) {
+            g_var.send_count = (u32) strtol(argv[i+1], NULL, 10);
+            if (!g_var.send_count) {
+                ret = 0;
             }
-            curr->type = 0x1;
-            ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
-            if (!curr->sip) {
-                curr->sip = htonl(SRC_IP);
-            }
-            i += 2;
-
-        } else if (0 == strcmp("-u", argv[i]) && i+1 < argc) {
-            if (curr->dip) {
-                goto add_node;
-            }
-            curr->type = 0x11;
-            ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
-            if (!curr->sip) {
-                curr->sip = htonl(SRC_IP);
-            }
-            curr->sport = SRC_PORT;
-            curr->dport = DST_PORT;     //strtol(argv[i+2], NULL, 10);
-            i += 2;
-
-        } else if (0 == strcmp("-t", argv[i]) && i+1 < argc) {
-            if (curr->dip) {
-               goto add_node;
-            }
-            curr->type = 0x6;
-            ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
-            if (!curr->sip) {
-                curr->sip = htonl(SRC_IP);
-            }
-            curr->sport = SRC_PORT;
-            curr->dport = DST_PORT;     //strtol(argv[i+2], NULL, 10);
             i += 2;
 
         } else {
@@ -106,11 +113,13 @@ static inline void handle_argv(int argc, char **argv)
         if (ret == 0) {
             fail_code = PARSE_ARG_FAIL;
             goto err;
-        } else {
-            continue;
         }
 
-add_node:
+        // before add_node
+        if (!curr->sip) {
+            curr->sip = SRC_IP;
+        }
+
         prev = curr;
         curr = NODE_CALLOC();
         if (NULL == curr) {
@@ -120,7 +129,8 @@ add_node:
         prev->next = curr;
     } 
 
-    show(head_node);
+    list_show(head_node);
+    show_g_var();
     return;
 
 err:
@@ -154,7 +164,7 @@ static inline int make_pdu(u8** msg, struct node_t* node)
     struct pdu_t* pdu;
     pdu = (struct pdu_t*) calloc(1, ret_len);
     if (NULL == pdu) err_exit(MALLOC_FAIL);
-    pdu->src_addr = htonl(node->sip);
+    pdu->src_addr = node->sip;
     pdu->dst_addr = node->dip;
     pdu->next_hop = htonl(DST_IP);
     pdu->input_intf = htons(0);
@@ -220,9 +230,11 @@ static inline int make_nflow_pkt(u8 **msg)
 
 int main (int argc, char *argv[]) 
 {
-    init_logger(LOGGER_FILE);
+    init_logger(&logger, LOGGER_FILE);
+    g_var.logger = &logger;
+
     handle_argv(argc, argv);
-    exit(0);
+    g_var.head_node = head_node;
 
     srand(time(0));
     u8 *msg;
@@ -245,6 +257,9 @@ int main (int argc, char *argv[])
         err_exit(CONNECT_FAIL);
     }
 
-    sendto(sockfd, (void*) msg, len, 0, (struct sockaddr*) NULL, sizeof(serv_addr));
+    for (int t=1; t<g_var.send_count; t++) {
+        sendto(sockfd, (void*) msg, len, 0, (struct sockaddr*) NULL, sizeof(serv_addr));
+        sleep(1);
+    }
     close(sockfd);
 }
