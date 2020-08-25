@@ -59,7 +59,19 @@ static inline void handle_argv(int argc, char **argv)
     fail_e fail_code = DEFAULT_FAIL;
     while (i < argc) {
 
-        if (0 == strcmp("-i", argv[i]) && i+1 < argc) {
+        if (0 == strcmp("-a", argv[i]) && i+1 < argc) {
+            ret = inet_pton(AF_INET, argv[i+1], &curr->sip);
+            i += 2;
+
+        } else if (0 == strcmp("-p", argv[i]) && i+1 < argc) {
+            
+            curr->dport = strtol(argv[i+1], NULL, 10);
+            i += 2;
+
+        } else if (0 == strcmp("-i", argv[i]) && i+1 < argc) {
+            if (curr->dip) {
+                goto add_node;
+            }
             curr->type = 0x1;
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
             /*
@@ -69,7 +81,10 @@ static inline void handle_argv(int argc, char **argv)
             */
             i += 2;
 
-        } else if (0 == strcmp("-u", argv[i]) && i+2 < argc) {
+        } else if (0 == strcmp("-u", argv[i]) && i+1 < argc) {
+            if (curr->dip) {
+                goto add_node;
+            }
             curr->type = 0x11;
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
             /*
@@ -82,7 +97,10 @@ static inline void handle_argv(int argc, char **argv)
             strtol(argv[i+2], NULL, 10);
             i += 3;
 
-        } else if (0 == strcmp("-t", argv[i]) && i+2 < argc) {
+        } else if (0 == strcmp("-t", argv[i]) && i+1 < argc) {
+            if (curr->dip) {
+               goto add_node;
+            }
             curr->type = 0x6;
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
             /*
@@ -113,6 +131,8 @@ static inline void handle_argv(int argc, char **argv)
         if (ret == 0) {
             fail_code = PARSE_ARG_FAIL;
             goto err;
+        } else {
+            continue;
         }
 
         // before add_node
