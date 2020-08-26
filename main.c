@@ -59,11 +59,7 @@ static inline void handle_argv(int argc, char **argv)
     fail_e fail_code = DEFAULT_FAIL;
     while (i < argc) {
 
-        if (0 == strcmp("-a", argv[i]) && i+1 < argc) {
-            ret = inet_pton(AF_INET, argv[i+1], &curr->sip);
-            i += 2;
-
-        } else if (0 == strcmp("-p", argv[i]) && i+1 < argc) {
+        if (0 == strcmp("-p", argv[i]) && i+1 < argc) {
             
             curr->dport = strtol(argv[i+1], NULL, 10);
             i += 2;
@@ -73,12 +69,8 @@ static inline void handle_argv(int argc, char **argv)
                 goto add_node;
             }
             curr->type = 0x1;
+            curr->sip = SRC_IP;
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
-            /*
-            if (!curr->sip) {
-                curr->sip = htonl(SRC_IP);
-            }
-            */
             i += 2;
 
         } else if (0 == strcmp("-u", argv[i]) && i+1 < argc) {
@@ -86,15 +78,10 @@ static inline void handle_argv(int argc, char **argv)
                 goto add_node;
             }
             curr->type = 0x11;
+            curr->sip = SRC_IP;
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
-            /*
-            if (!curr->sip) {
-                curr->sip = htonl(SRC_IP);
-            }
-            */
             curr->sport = SRC_PORT;
-            //curr->dport = DST_PORT;
-            strtol(argv[i+2], NULL, 10);
+            curr->dport = strtol(argv[i+2], NULL, 10);
             i += 3;
 
         } else if (0 == strcmp("-t", argv[i]) && i+1 < argc) {
@@ -102,15 +89,10 @@ static inline void handle_argv(int argc, char **argv)
                goto add_node;
             }
             curr->type = 0x6;
+            curr->sip = SRC_IP;
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
-            /*
-            if (!curr->sip) {
-                curr->sip = htonl(SRC_IP);
-            }
-            */
             curr->sport = SRC_PORT;
-            //curr->dport = DST_PORT;
-            strtol(argv[i+2], NULL, 10);
+            curr->dport = strtol(argv[i+2], NULL, 10);
             i += 3;
 
         } else if (0 == strcmp("-a", argv[i]) && i+1 < argc) {
@@ -135,7 +117,7 @@ static inline void handle_argv(int argc, char **argv)
             continue;
         }
 
-        // before add_node
+add_node:
         if (!curr->sip) {
             curr->sip = SRC_IP;
         }
@@ -149,7 +131,7 @@ static inline void handle_argv(int argc, char **argv)
         prev->next = curr;
     } 
 
-    list_show(head_node);
+    list_show(LOGGER, head_node);
     show_g_var();
     return;
 
@@ -277,9 +259,8 @@ int main (int argc, char *argv[])
         err_exit(CONNECT_FAIL);
     }
 
-    for (int t=1; t<g_var.send_count; t++) {
+    for (int t=0; t < g_var.send_count; t++) {
         sendto(sockfd, (void*) msg, len, 0, (struct sockaddr*) NULL, sizeof(serv_addr));
-        sleep(1);
     }
     close(sockfd);
 }

@@ -23,27 +23,27 @@ struct node_t {
 //TODO: add struct list_t and relative APIs
 
 
-static inline void list_show(struct node_t* curr) {
+static inline void list_show(struct logger_t* logger, struct node_t* curr) {
     while (curr) {
-        CHECK("-------------------\n");
+        CHECK(logger, "-------------------\n");
         switch (curr->type) {
             case 0x1:
-                CHECK("type: ICMP\n");
+                CHECK(logger, "type: ICMP\n");
                 break;
             case 0x6:
-                CHECK("type: TCP\n");
+                CHECK(logger, "type: TCP\n");
                 break;
             case 0x11:
-                CHECK("type: UDP\n");
+                CHECK(logger, "type: UDP\n");
                 break;
             default:
-                CHECK("Unknown type\n");
+                CHECK(logger, "Unknown type\n");
                 return;
         }
-        CHECK("sip: %x\n", htonl(curr->sip));
-        CHECK("dip: %x\n", htonl(curr->dip));
-        CHECK("sport: %d\n", curr->sport);
-        CHECK("dport: %d\n", curr->dport);
+        CHECK(logger, "sip: %x\n", htonl(curr->sip));
+        CHECK(logger, "dip: %x\n", htonl(curr->dip));
+        CHECK(logger, "sport: %d\n", curr->sport);
+        CHECK(logger, "dport: %d\n", curr->dport);
         curr = curr->next;
     }
 }
