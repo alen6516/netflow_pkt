@@ -7,7 +7,7 @@
 #include <sys/socket.h>        /* socket(), bind(), listen(), ... */
 #include <netinet/in.h>        /* AF_INET, AF_INET6 addr family and their corresponding protocol family PF_INET, PFINET6 */
 #include <arpa/inet.h>         /* hton(), inet_ntop() */
-#include <unistd.h>            /* read(), write(), close() */
+#include <unistd.h>            /* read(), write(), close(), sleep() */
 
 
 #include "util.h"
@@ -59,12 +59,7 @@ static inline void handle_argv(int argc, char **argv)
     fail_e fail_code = DEFAULT_FAIL;
     while (i < argc) {
 
-        if (0 == strcmp("-p", argv[i]) && i+1 < argc) {
-            
-            curr->dport = strtol(argv[i+1], NULL, 10);
-            i += 2;
-
-        } else if (0 == strcmp("-i", argv[i]) && i+1 < argc) {
+        if (0 == strcmp("-i", argv[i]) && i+1 < argc) {
             if (curr->dip) {
                 goto add_node;
             }
@@ -102,11 +97,21 @@ static inline void handle_argv(int argc, char **argv)
         } else if (0 == strcmp("-c", argv[i]) && i+1 < argc) {
             g_var.send_count = (u32) strtol(argv[i+1], NULL, 10);
             if (!g_var.send_count) {
+                ERROR(LOGGER, "send_count == 0\n");
+                ret = 0;
+            }
+            i += 2;
+
+        } else if (0 == strcmp("-I", argv[i]) && i+1 < argc) {
+            g_var.interval = (u32) strtol(argv[i+1], NULL, 10);
+            if (g_var.interval == 0) {
+                ERROR(LOGGER, "interval == 0\n");
                 ret = 0;
             }
             i += 2;
 
         } else {
+            ERROR(LOGGER, "unknown option \"%s\"\n", argv[i]);
             ret = 0;
         }
 
@@ -131,7 +136,7 @@ add_node:
         prev->next = curr;
     } 
 
-    list_show(LOGGER, head_node);
+    //list_show(LOGGER, head_node);
     show_g_var();
     return;
 
@@ -260,6 +265,10 @@ int main (int argc, char *argv[])
     }
 
     for (int t=0; t < g_var.send_count; t++) {
+        if (t != 0) {
+            sleep(g_var.interval);
+        }
+        list_show(LOGGER, head_node);
         sendto(sockfd, (void*) msg, len, 0, (struct sockaddr*) NULL, sizeof(serv_addr));
     }
     close(sockfd);

@@ -24,6 +24,9 @@ struct node_t {
 
 
 static inline void list_show(struct logger_t* logger, struct node_t* curr) {
+
+    char dst[INET_ADDRSTRLEN] = {0};
+
     while (curr) {
         CHECK(logger, "-------------------\n");
         switch (curr->type) {
@@ -40,8 +43,13 @@ static inline void list_show(struct logger_t* logger, struct node_t* curr) {
                 CHECK(logger, "Unknown type\n");
                 return;
         }
-        CHECK(logger, "sip: %x\n", htonl(curr->sip));
-        CHECK(logger, "dip: %x\n", htonl(curr->dip));
+
+        inet_ntop(AF_INET, &curr->sip, dst, INET_ADDRSTRLEN);
+        //CHECK(logger, "sip: %x\n", htonl(curr->sip));
+        CHECK(logger, "sip: %s\n", dst);
+        //CHECK(logger, "dip: %x\n", htonl(curr->dip));
+        inet_ntop(AF_INET, &curr->dip, dst, INET_ADDRSTRLEN);
+        CHECK(logger, "dip: %s\n", dst);
         CHECK(logger, "sport: %d\n", curr->sport);
         CHECK(logger, "dport: %d\n", curr->dport);
         curr = curr->next;
