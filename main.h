@@ -58,7 +58,8 @@ struct g_var_t {
 extern struct g_var_t g_var;
 #define LOGGER g_var.logger
 
-static inline void show_g_var() {
+static inline void show_g_var()
+{
     CHECK(LOGGER, "######## show g_var ########\n");
     CHECK(LOGGER, "interval = %d\n", g_var.interval);
     CHECK(LOGGER, "send_count = %d\n", g_var.send_count);
