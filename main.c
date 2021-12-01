@@ -18,7 +18,7 @@
 
 struct g_var_t g_var = {
     .interval = 1,
-    .send_count = 1,
+    .send_count = -1,
 };
 
 struct logger_t logger;
@@ -47,8 +47,8 @@ static inline void handle_argv(int argc, char **argv)
     if (argc == 1) {
         // no any arg
         head_node->type = 0x1;
-        head_node->sip = SRC_IP;
-        head_node->dip = DST_IP;
+        head_node->sip = htonl(SRC_IP);
+        head_node->dip = htonl(DST_IP);
         return;
     }
 
@@ -64,7 +64,7 @@ static inline void handle_argv(int argc, char **argv)
                 goto add_node;
             }
             curr->type = 0x1;
-            curr->sip = SRC_IP;
+            curr->sip = htonl(SRC_IP);
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
             i += 2;
 
@@ -73,7 +73,7 @@ static inline void handle_argv(int argc, char **argv)
                 goto add_node;
             }
             curr->type = 0x11;
-            curr->sip = SRC_IP;
+            curr->sip = htonl(SRC_IP);
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
             curr->sport = SRC_PORT;
             curr->dport = strtol(argv[i+2], NULL, 10);
@@ -84,7 +84,7 @@ static inline void handle_argv(int argc, char **argv)
                goto add_node;
             }
             curr->type = 0x6;
-            curr->sip = SRC_IP;
+            curr->sip = htonl(SRC_IP);
             ret = inet_pton(AF_INET, argv[i+1], &curr->dip);
             curr->sport = SRC_PORT;
             curr->dport = strtol(argv[i+2], NULL, 10);
@@ -124,7 +124,7 @@ static inline void handle_argv(int argc, char **argv)
 
 add_node:
         if (!curr->sip) {
-            curr->sip = SRC_IP;
+            curr->sip = htonl(SRC_IP);
         }
 
         prev = curr;
@@ -176,8 +176,8 @@ static inline int make_pdu(u8** msg, struct node_t* node)
     pdu->next_hop = htonl(DST_IP);
     pdu->input_intf = htons(0);
     pdu->output_intf = htons(0);
-    pdu->pkt_count = htonl(1001);
-    pdu->octet_count = htonl(2002);
+    pdu->pkt_count = htonl(10);
+    pdu->octet_count = htonl(100);
     pdu->start_time = htonl(0x01b6);
     pdu->end_time = htonl(0x023b);
     pdu->src_port = htons(node->sport);
@@ -264,7 +264,7 @@ int main (int argc, char *argv[])
         err_exit(CONNECT_FAIL);
     }
 
-    for (int t=0; t < g_var.send_count; t++) {
+    for (int t=0; (t < g_var.send_count || g_var.send_count == -1); t++) {
         if (t != 0) {
             sleep(g_var.interval);
         }

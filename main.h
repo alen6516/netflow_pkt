@@ -50,7 +50,7 @@ static inline int make_nflow_pkt(u8 **);
 
 struct g_var_t {
     u32 interval;
-    u32 send_count;
+    int send_count;
     struct logger_t* logger;
     struct node_t* head_node;
 }__attribute__((packed));
